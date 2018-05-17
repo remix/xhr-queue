@@ -6,6 +6,8 @@
 
 A queue for HTTP requests, to guarantee a sequential order. This prevents conflicts between requests. It also removes the need for some callbacks in the frontend code. And it removes the need for throttling/debouncing, leading to a snappier user experience. Finally, it allows for retrying failed requests when the connection drops.
 
+Check out [this blog post](https://blog.remix.com/request-queuing-965ea7f917f7) for more details.
+
 ## Example:
 Before:
 ```js
