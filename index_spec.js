@@ -323,6 +323,20 @@ describe('newXhrQueue', function() {
       expect(getOpenRequestUrls()).toEqual([]);
     });
 
+    it('stops the queue entirely until connection is restored', function() {
+      xhrQueue.xhr({ url: '/read' }, function() {});
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+
+      respondToRequestWithUrl('/read', { status: 0 });
+      expect(getOpenRequestUrls()).toEqual([]);
+
+      xhrQueue.xhr({ url: '/read' }, function() {});
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual([]);
+      expect(xhrQueue.getQueuedUrls()).toEqual(['/read', '/read']);
+    });
+
     it('allows retrying', function() {
       xhrQueue.xhr({ url: '/read' }, function() {});
       jasmine.clock().tick(1);
@@ -338,6 +352,58 @@ describe('newXhrQueue', function() {
       respondToRequestWithUrl('/read');
       expect(connectionCallbacks).toEqual(['connection_lost', 'connection_restored']);
       expect(getOpenRequestUrls()).toEqual([]);
+    });
+
+    it('does not let you cancel a failed request (to prevent weird interactions between retrying and cancelling)', function() {
+      var request = xhrQueue.xhr({ url: '/read' }, function() {});
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+
+      respondToRequestWithUrl('/read', { status: 0 });
+      expect(getOpenRequestUrls()).toEqual([]);
+
+      expect(request.cancel()).toEqual(false);
+
+      xhrQueue.retry();
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+
+      respondToRequestWithUrl('/read');
+      expect(connectionCallbacks).toEqual(['connection_lost', 'connection_restored']);
+      expect(getOpenRequestUrls()).toEqual([]);
+    });
+
+    it('when ignoring a failed request, it removes the callback, but still retries it', function() {
+      var callbackForFailedRequest = jasmine.createSpy('callbackForFailedRequest');
+      xhrQueue.xhr({ url: '/read' }, callbackForFailedRequest);
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+
+      respondToRequestWithUrl('/read', { status: 0 });
+      expect(getOpenRequestUrls()).toEqual([]);
+
+      var callbackForSuccessfulRequest = jasmine.createSpy('callbackForSuccessfulRequest');
+      xhrQueue.xhr({ url: '/read', ignorePreviousByUrl: true }, callbackForSuccessfulRequest);
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual([]);
+      expect(xhrQueue.getQueuedUrls()).toEqual(['/read', '/read']);
+
+      xhrQueue.retry();
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+
+      respondToRequestWithUrl('/read');
+      expect(connectionCallbacks).toEqual(['connection_lost', 'connection_restored']);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+      expect(callbackForFailedRequest).not.toHaveBeenCalled();
+
+      jasmine.clock().tick(1);
+      expect(getOpenRequestUrls()).toEqual(['/read']);
+      respondToRequestWithUrl('/read');
+      expect(getOpenRequestUrls()).toEqual([]);
+      expect(connectionCallbacks).toEqual(['connection_lost', 'connection_restored']);
+      expect(callbackForFailedRequest).not.toHaveBeenCalled();
+      expect(callbackForSuccessfulRequest).toHaveBeenCalled();
     });
   });
 });

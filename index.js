@@ -72,6 +72,10 @@ module.exports = function newXhrQueue(options) {
           if (queueItem.failed) queueItemsToPutInFlight.push(queueItem);
         });
       } else {
+        var failedRequests = queue.filter(function(queueItem) {
+          return queueItem.failed;
+        }).length;
+
         var inFlightReads = queue.filter(function(queueItem) {
           return queueItem.type === 'read' && queueItem.inFlight;
         }).length;
@@ -92,7 +96,7 @@ module.exports = function newXhrQueue(options) {
         // the first write, but don't include it unless there are no reads before it
         // (to prevent backend serialization errors between the write and the reads
         // before it).
-        if (inFlightWrites === 0) {
+        if (failedRequests === 0 && inFlightWrites === 0) {
           for (var i = 0; i < queue.length; i++) {
             if (!queue[i].inFlight) {
               if (queue[i].type === 'read') {
@@ -182,6 +186,7 @@ module.exports = function newXhrQueue(options) {
         debugId: nextDebugId()
       };
       queueItem.cancel = function() {
+        if (this.failed) return false;
         if (this.cancelled) return true;
 
         if (this.inFlight) {
