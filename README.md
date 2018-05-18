@@ -116,5 +116,21 @@ To retry failed requests because of dropped connection (requests with status cod
 
 To visualise to the console what's happening in the queue, initialise the queue with `enableDebugging: true`. To distinguish multiple queues, initialise with `debugName: 'my queue name'`.
 
+## Integration tests
+
+In integration tests, it can be more robust to use the xhrQueue to determine when requests have finished, instead of just looking at in-flight requests. For example, at Remix we use [transactional-capybara](https://github.com/iangreenleaf/transactional_capybara), which we monkey-patch like this:
+
+```ruby
+module TransactionalCapybara
+  module AjaxHelpers
+    class PageWaiting
+      def finished_ajax_requests?
+        run_js("window.xhrQueue.getQueuedUrls().length").zero?
+      end
+    end
+  end
+end
+```
+
 ## License
 [MIT](LICENSE)
