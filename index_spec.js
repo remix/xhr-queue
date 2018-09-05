@@ -406,4 +406,11 @@ describe('newXhrQueue', function() {
       expect(callbackForSuccessfulRequest).toHaveBeenCalled();
     });
   });
+
+  it('returns a promise if no callback is passed', function() {
+    var promise = xhrQueue.xhr({ url: '/write-1', method: 'POST' });
+    jasmine.clock().tick(1);
+    respondToRequestWithUrl('/write-1');
+    return promise;
+  });
 });
