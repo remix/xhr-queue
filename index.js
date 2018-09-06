@@ -122,7 +122,9 @@ module.exports = function newXhrQueue(options) {
             queueItem.failed = true; // eslint-disable-line no-param-reassign
             connectionCallback('connection_lost');
             return;
-          } else if (isRetry) {
+          }
+
+          if (isRetry) {
             connectionCallback('connection_restored');
           }
 
@@ -153,8 +155,19 @@ module.exports = function newXhrQueue(options) {
     });
   };
 
-  return {
+  var result = {
     xhr: function(request, callback) {
+      if (arguments.length === 1) {
+        return new Promise(function(resolve, reject) {
+          result.xhr(request, function(err, response) {
+            if (err) {
+              return reject(err);
+            }
+            return resolve(response);
+          });
+        });
+      }
+
       var type =
         request.overrideQueueItemType ||
         (!request.method || request.method.toUpperCase() === 'GET' ? 'read' : 'write');
@@ -216,4 +229,6 @@ module.exports = function newXhrQueue(options) {
       refreshQueue(true);
     }
   };
+
+  return result;
 };
