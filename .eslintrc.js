@@ -2,7 +2,7 @@ module.exports = {
   extends: ['prettier', 'airbnb-base/legacy'],
   plugins: ['prettier'],
   rules: {
-    'prettier/prettier': ['warn', { singleQuote: true, printWidth: 100 }],
+    'prettier/prettier': ['error', { singleQuote: true, printWidth: 100 }],
     'vars-on-top': 0,
     'func-names': 0,
     'space-before-function-paren': 0,
