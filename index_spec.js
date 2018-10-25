@@ -177,6 +177,121 @@ describe('newXhrQueue', function() {
     });
   });
 
+  describe('with ignorePreviousBy', function() {
+    describe('with an in-flight GET request', function() {
+      it('aborts the request', function() {
+        var request = {
+          url: '/req',
+          method: 'GET',
+          ignorePreviousBy: function() {
+            return true;
+          }
+        };
+        xhrQueue.xhr(request);
+        jasmine.clock().tick(1);
+        xhrQueue.xhr(request);
+        jasmine.clock().tick(1);
+        expect(getAbortedRequestCount()).toBe(1);
+        expect(getOpenRequestUrls()).toEqual(['/req']);
+      });
+
+      it('does not invoke the callback', function() {
+        var request = {
+          url: '/req',
+          method: 'GET',
+          ignorePreviousBy: function() {
+            return true;
+          }
+        };
+        var callback1 = jasmine.createSpy('callback1');
+        var callback2 = jasmine.createSpy('callback2');
+        xhrQueue.xhr(request, callback1);
+        jasmine.clock().tick(1);
+        xhrQueue.xhr(request, callback2);
+        jasmine.clock().tick(1);
+
+        respond(requests[0]);
+        respond(requests[1]);
+
+        expect(callback1).not.toHaveBeenCalled();
+        expect(callback2).toHaveBeenCalled();
+      });
+
+      it('does not abort if the function returns false', function() {
+        var request = {
+          url: '/req',
+          method: 'GET',
+          ignorePreviousBy: function() {
+            return false;
+          }
+        };
+        xhrQueue.xhr(request);
+        jasmine.clock().tick(1);
+        xhrQueue.xhr(request);
+        jasmine.clock().tick(1);
+        expect(getAbortedRequestCount()).toBe(0);
+        expect(getOpenRequestUrls()).toEqual(['/req', '/req']);
+      });
+
+      it('passes in the previous and current requests', function() {
+        xhrQueue.xhr({ url: '/req1', method: 'GET' });
+        jasmine.clock().tick(1);
+        xhrQueue.xhr({ url: '/rek2', method: 'GET' });
+        jasmine.clock().tick(1);
+        xhrQueue.xhr({
+          url: '/req3',
+          method: 'GET',
+          ignorePreviousBy: function(previousRequest, currentRequest) {
+            return previousRequest.url.slice(0, 4) === currentRequest.url.slice(0, 4);
+          }
+        });
+        jasmine.clock().tick(1);
+        expect(getAbortedRequestCount()).toBe(1);
+        expect(getOpenRequestUrls()).toEqual(['/rek2', '/req3']);
+      });
+    });
+
+    describe('with an in-flight POST request', function() {
+      it('does not abort the request', function() {
+        var request = {
+          url: '/req',
+          method: 'POST',
+          ignorePreviousBy: function() {
+            return true;
+          }
+        };
+        xhrQueue.xhr(request);
+        jasmine.clock().tick(1);
+        xhrQueue.xhr(request);
+        jasmine.clock().tick(1);
+        expect(getAbortedRequestCount()).toBe(0);
+        expect(getOpenRequestUrls()).toEqual(['/req']);
+      });
+
+      it('does not invoke the callback', function() {
+        var request = {
+          url: '/req',
+          method: 'POST',
+          ignorePreviousBy: function() {
+            return true;
+          }
+        };
+        var callback1 = jasmine.createSpy('callback1');
+        var callback2 = jasmine.createSpy('callback2');
+        xhrQueue.xhr(request, callback1);
+        jasmine.clock().tick(1);
+        xhrQueue.xhr(request, callback2);
+        jasmine.clock().tick(1);
+
+        respond(requests[0]);
+        respond(requests[1]);
+
+        expect(callback1).not.toHaveBeenCalled();
+        expect(callback2).toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('canceling an in-flight read request', function() {
     var queuePointers;
     var read1Callback;
