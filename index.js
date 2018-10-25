@@ -173,11 +173,14 @@ module.exports = function newXhrQueue(options) {
         (!request.method || request.method.toUpperCase() === 'GET' ? 'read' : 'write');
       if (type !== 'read' && type !== 'write') throw new Error('Invalid queueItem.type: ' + type);
 
-      if (request.ignorePreviousByUrl) {
-        var hasSameUrl = function(item) {
-          return item.request.url === request.url;
+      if (request.ignorePreviousByUrl || request.ignorePreviousBy) {
+        var isSame = function(item) {
+          return (
+            (request.ignorePreviousByUrl && item.request.url === request.url) ||
+            (request.ignorePreviousBy && request.ignorePreviousBy(item.request, request))
+          );
         };
-        queue.filter(hasSameUrl).forEach(function(item) {
+        queue.filter(isSame).forEach(function(item) {
           // When the caller specifies that previous requests should be ignored, it signals
           // that the callback should never be invoked. A best effort at cancellation is made
           // but the request is still allowed to complete if it is in flight, otherwise it might

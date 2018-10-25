@@ -91,9 +91,26 @@ window.xhrQueue.xhr({
 });
 ```
 
-## Cancelling requests
+## Other ways to cancel requests
 
-In addition to cancelling requests using `ignorePreviousByUrl`, you can also manually cancel them:
+In addition to cancelling requests using `ignorePreviousByUrl`, you can also use the `ignorePreviousBy` option to specify custom logic for matching previous requests against the current one:
+
+```js
+window.xhrQueue.xhr({
+  url: `${project_id}/stats`,
+  query: { type: 'skub' },
+  ignorePreviousBy(previousRequest, currentRequest) {
+    return (
+      previousRequest.url === currentRequest.url &&
+      previousRequest.query &&
+      currentRequest.query &&
+      previousRequest.query.type === currentRequest.query.type
+    )
+  },
+}, (error, response, body) => updateStats(body));
+```
+
+You can also manually cancel a request:
 
 ```js
 const request = window.xhrQueue.xhr({
@@ -104,9 +121,9 @@ const request = window.xhrQueue.xhr({
 setTimeout(() => request.cancel(), 1000);
 ```
 
-Note that when a write request is cancelled while it is already in flight (either using `cancel()` or using `ignorePreviousByUrl: true`), the queue will still wait until the request is finished. In case of read requests, we attempt to abort the request, but allow continuing the queue.
+Note that when a write request is cancelled while it is already in flight (by using `cancel()`, `ignorePreviousByUrl`, or `ignorePreviousBy`), the queue will still wait until the request is finished. In case of read requests, we attempt to abort the request, but allow continuing the queue.
 
-When using `ignorePreviousByUrl: true`, the callback from the previous request will be ignored (it will not be called).
+When using `ignorePreviousByUrl` or `ignorePreviousBy`, the callback from the previous request will be ignored (it will not be called).
 
 ## Other methods
 
